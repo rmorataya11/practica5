@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
+import { useUIStore } from '../../store/uiStore'
 import { updateTask, deleteTask } from '../../services/taskService'
 import { CATEGORIES } from '../../utils/constants'
 import { getDueDateLabel, isOverdue } from '../../utils/dateHelpers'
@@ -10,22 +12,45 @@ const CATEGORY_CLASSES = {
   gray: 'bg-gray-100 text-gray-800',
 }
 
+const CATEGORY_CLASSES_DARK = {
+  blue: 'bg-blue-900/50 text-blue-300',
+  green: 'bg-green-900/50 text-green-300',
+  purple: 'bg-purple-900/50 text-purple-300',
+  gray: 'bg-gray-700 text-gray-300',
+}
+
 export default function TaskCard({ task }) {
+  const theme = useUIStore((state) => state.theme)
+  const isDark = theme === 'dark'
   const category = CATEGORIES.find((c) => c.id === task.category)
+  const categoryClasses = isDark ? CATEGORY_CLASSES_DARK : CATEGORY_CLASSES
   const categoryClass = category
-    ? CATEGORY_CLASSES[category.color] || 'bg-gray-100 text-gray-800'
-    : 'bg-gray-100 text-gray-800'
+    ? categoryClasses[category.color] || (isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-800')
+    : (isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-800')
   const overdue = isOverdue(task.dueDate, task.completed)
+  const cardBaseClass = isDark
+    ? 'bg-gray-800 border border-gray-700 rounded-lg shadow-md hover:shadow-lg transition-shadow p-4'
+    : 'card hover:shadow-lg transition-shadow p-4'
 
   const handleToggleComplete = async (e) => {
     e.preventDefault()
-    await updateTask(task.id, { completed: !task.completed })
+    const result = await updateTask(task.id, { completed: !task.completed })
+    if (result.success) {
+      toast.success(task.completed ? 'Tarea marcada como pendiente' : 'Tarea completada')
+    } else {
+      toast.error('Error al actualizar la tarea')
+    }
   }
 
   const handleDelete = async (e) => {
     e.preventDefault()
     if (window.confirm('¿Eliminar esta tarea?')) {
-      await deleteTask(task.id)
+      const result = await deleteTask(task.id)
+      if (result.success) {
+        toast.success('Tarea eliminada')
+      } else {
+        toast.error('Error al eliminar la tarea')
+      }
     }
   }
 
@@ -35,7 +60,7 @@ export default function TaskCard({ task }) {
       className="block"
     >
       <div
-        className={`card hover:shadow-lg transition-shadow p-4 ${
+        className={`${cardBaseClass} ${
           task.completed ? 'opacity-60' : ''
         } ${overdue ? 'border-2 border-red-500' : ''}`}
       >
@@ -43,13 +68,17 @@ export default function TaskCard({ task }) {
           <div className="flex-1 min-w-0">
             <h3
               className={`font-semibold ${
-                task.completed ? 'line-through text-gray-500' : 'text-gray-800'
+                task.completed
+                  ? 'line-through text-gray-500'
+                  : isDark
+                    ? 'text-gray-100'
+                    : 'text-gray-800'
               }`}
             >
               {task.title}
             </h3>
             {task.description && (
-              <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+              <p className={`text-sm mt-1 line-clamp-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                 {task.description}
               </p>
             )}
@@ -62,13 +91,13 @@ export default function TaskCard({ task }) {
                 </span>
               )}
               {getDueDateLabel(task.dueDate) && (
-                <span className="text-sm text-gray-500">
+                <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                   {getDueDateLabel(task.dueDate)}
                 </span>
               )}
               <span
                 className={`text-xs ${
-                  task.completed ? 'text-green-600' : 'text-amber-600'
+                  task.completed ? 'text-green-500' : 'text-amber-500'
                 }`}
               >
                 {task.completed ? 'Completada' : 'Pendiente'}

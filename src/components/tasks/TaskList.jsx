@@ -1,14 +1,21 @@
 import { useState } from 'react'
+import { useUIStore } from '../../store/uiStore'
 import TaskCard from './TaskCard'
 import TaskForm from './TaskForm'
 
 export default function TaskList({ tasks = [] }) {
   const [showForm, setShowForm] = useState(false)
+  const theme = useUIStore((state) => state.theme)
+  const isDark = theme === 'dark'
+
+  const emptyCardClass = isDark
+    ? 'bg-gray-800 border border-gray-700 rounded-lg shadow-md p-6 text-center py-12'
+    : 'card text-center py-12'
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">
+        <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
           Mis Tareas ({tasks.length})
         </h2>
         <button
@@ -27,9 +34,9 @@ export default function TaskList({ tasks = [] }) {
       )}
 
       {tasks.length === 0 ? (
-        <div className="card text-center py-12">
-          <p className="text-gray-500 text-lg">No hay tareas para mostrar</p>
-          <p className="text-gray-400 mt-2">
+        <div className={emptyCardClass}>
+          <p className={isDark ? 'text-gray-400 text-lg' : 'text-gray-500 text-lg'}>No hay tareas para mostrar</p>
+          <p className={isDark ? 'text-gray-500 mt-2' : 'text-gray-400 mt-2'}>
             Crea una nueva tarea para comenzar
           </p>
         </div>

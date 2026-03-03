@@ -6,6 +6,7 @@ export const useTaskStore = create((set) => ({
   error: null,
   currentFilter: 'all',
   currentCategory: 'all',
+  searchQuery: '',
 
   setTasks: (tasks) => set({ tasks, loading: false, error: null }),
   addTask: (task) => set((state) => ({ tasks: [...state.tasks, task] })),
@@ -19,6 +20,7 @@ export const useTaskStore = create((set) => ({
     set((state) => ({ tasks: state.tasks.filter((task) => task.id !== taskId) })),
   setFilter: (filter) => set({ currentFilter: filter }),
   setCategory: (category) => set({ currentCategory: category }),
+  setSearchQuery: (query) => set({ searchQuery: query }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error, loading: false }),
 }))
