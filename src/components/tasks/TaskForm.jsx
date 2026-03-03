@@ -1,100 +1,178 @@
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { useAuthStore } from '../../store/authStore'
-import { createTask } from '../../services/taskService'
+import { createTask, updateTask } from '../../services/taskService'
 import { CATEGORIES, PRIORITIES } from '../../utils/constants'
 
-export default function TaskForm({ onClose }) {
+export default function TaskForm({ onClose, taskToEdit = null }) {
   const user = useAuthStore((state) => state.user)
-  const [title, setTitle] = useState('')
-  const [category, setCategory] = useState('other')
-  const [priority, setPriority] = useState('medium')
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    if (!title.trim()) {
-      setError('El título es obligatorio')
-      return
-    }
+  const isEditing = !!taskToEdit
+
+  const defaultValues = taskToEdit
+    ? {
+        title: taskToEdit.title,
+        description: taskToEdit.description || '',
+        category: taskToEdit.category,
+        priority: taskToEdit.priority,
+        dueDate: taskToEdit.dueDate
+          ? (taskToEdit.dueDate.toISOString
+              ? taskToEdit.dueDate.toISOString()
+              : new Date(taskToEdit.dueDate).toISOString()
+            ).split('T')[0]
+          : '',
+      }
+    : {
+        title: '',
+        description: '',
+        category: 'other',
+        priority: 'medium',
+        dueDate: '',
+      }
+
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    defaultValues,
+  })
+
+  const onSubmit = async (data) => {
     setLoading(true)
-    const result = await createTask(
-      { title: title.trim(), category, priority },
-      user.uid
-    )
+    setError('')
+    const taskData = {
+      title: data.title,
+      description: data.description || '',
+      category: data.category,
+      priority: data.priority,
+      dueDate: data.dueDate ? new Date(data.dueDate) : null,
+    }
+    let result
+    if (isEditing) {
+      result = await updateTask(taskToEdit.id, taskData)
+    } else {
+      result = await createTask(taskData, user.uid)
+    }
     setLoading(false)
     if (result.success) {
-      setTitle('')
       onClose()
     } else {
-      setError(result.error || 'Error al crear la tarea')
+      setError(
+        isEditing ? 'Error al actualizar la tarea' : 'Error al crear la tarea'
+      )
     }
   }
 
   return (
     <div className="card p-6">
-      <h3 className="text-lg font-bold text-gray-800 mb-4">Nueva tarea</h3>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-xl font-bold text-gray-800">
+          {isEditing ? 'Editar Tarea' : 'Nueva Tarea'}
+        </h3>
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+          aria-label="Cerrar"
+        >
+          &times;
+        </button>
+      </div>
+
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg mb-4 text-sm">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
           {error}
         </div>
       )}
-      <form onSubmit={handleSubmit} className="space-y-4">
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Título
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Título *
           </label>
           <input
             type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
             className="input-field"
-            placeholder="¿Qué hay que hacer?"
-            autoFocus
+            placeholder="Ej: Completar informe mensual"
+            {...register('title', {
+              required: 'El título es obligatorio',
+              minLength: { value: 3, message: 'Mínimo 3 caracteres' },
+            })}
+          />
+          {errors.title && (
+            <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Descripción
+          </label>
+          <textarea
+            className="input-field"
+            rows={3}
+            placeholder="Descripción detallada de la tarea..."
+            {...register('description')}
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Categoría
-          </label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="input-field"
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}
-              </option>
-            ))}
-          </select>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Categoría *
+            </label>
+            <select
+              className="input-field"
+              {...register('category', { required: true })}
+            >
+              {CATEGORIES.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Prioridad *
+            </label>
+            <select
+              className="input-field"
+              {...register('priority', { required: true })}
+            >
+              {PRIORITIES.map((prio) => (
+                <option key={prio.id} value={prio.id}>
+                  {prio.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Fecha de vencimiento
+            </label>
+            <input
+              type="date"
+              className="input-field"
+              {...register('dueDate')}
+            />
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Prioridad
-          </label>
-          <select
-            value={priority}
-            onChange={(e) => setPriority(e.target.value)}
-            className="input-field"
-          >
-            {PRIORITIES.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}
-              </option>
-            ))}
-          </select>
-        </div>
+
         <div className="flex gap-2">
-          <button type="submit" disabled={loading} className="btn-primary">
-            {loading ? 'Creando...' : 'Crear tarea'}
-          </button>
           <button
-            type="button"
-            onClick={onClose}
-            className="btn-secondary"
+            type="submit"
+            disabled={loading}
+            className="btn-primary"
           >
+            {loading
+              ? isEditing
+                ? 'Guardando...'
+                : 'Creando...'
+              : isEditing
+                ? 'Guardar cambios'
+                : 'Crear tarea'}
+          </button>
+          <button type="button" onClick={onClose} className="btn-secondary">
             Cancelar
           </button>
         </div>
