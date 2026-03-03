@@ -1,11 +1,10 @@
 export default function LoadingSpinner() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div
-        className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"
-        role="status"
-        aria-label="Cargando"
-      />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto"></div>
+        <p className="mt-4 text-gray-600 font-medium">Cargando...</p>
+      </div>
     </div>
   )
 }
