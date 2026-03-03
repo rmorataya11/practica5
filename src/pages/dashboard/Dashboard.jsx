@@ -1,11 +1,13 @@
 import { useAuthStore } from '../../store/authStore'
 import { useTaskStore } from '../../store/taskStore'
+import { useTasks } from '../../hooks/useTasks'
 import TaskFilters from '../../components/tasks/TaskFilters'
 import TaskList from '../../components/tasks/TaskList'
 
 export default function Dashboard() {
   const user = useAuthStore((state) => state.user)
   const { tasks, currentFilter, currentCategory } = useTaskStore()
+  useTasks()
 
   const filteredTasks = tasks.filter((task) => {
     if (currentFilter === 'completed' && !task.completed) return false
